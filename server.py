@@ -83,4 +83,4 @@ if __name__ == "__main__":
     # 启动时加载历史数据
     load_from_csv()
     # debug=True 方便本地开发
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=5000)
