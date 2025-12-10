@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>深蹲训练数据分析仪表盘</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: rgba(15, 23, 42, 0.9);
+      --glass: rgba(255, 255, 255, 0.08);
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #5dd8ff;
+      --accent-2: #7c4dff;
+      --accent-3: #ffb347;
+      --border: rgba(255, 255, 255, 0.08);
+      --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+      --radius: 16px;
+      --radius-sm: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: radial-gradient(130% 130% at 20% 20%, rgba(92, 225, 230, 0.18), transparent 40%),
+        radial-gradient(120% 120% at 80% 0%, rgba(124, 77, 255, 0.12), transparent 45%),
+        #0b1224;
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 26px 22px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(14px);
+      background: linear-gradient(120deg, rgba(92, 225, 230, 0.24), rgba(124, 77, 255, 0.2));
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: 0.4px;
+    }
+
+    header p {
+      margin: 8px 0 0;
+      color: var(--muted);
+    }
+
+    .page {
+      padding: 18px 22px 28px;
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #0b1224;
+      background: linear-gradient(135deg, #5dd8ff, #7c4dff);
+      box-shadow: 0 14px 28px rgba(92, 225, 230, 0.25);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+      box-shadow: 0 16px 32px rgba(124, 77, 255, 0.25);
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--glass);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: 999px;
+      color: var(--text);
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 80% 20%, rgba(93, 216, 255, 0.16), transparent 35%);
+      pointer-events: none;
+    }
+
+    .card h3 {
+      margin: 0 0 6px;
+      font-size: 13px;
+      letter-spacing: 0.4px;
+      color: var(--muted);
+    }
+
+    .card .value {
+      font-size: 28px;
+      font-weight: 800;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .card small {
+      color: var(--muted);
+    }
+
+    .layout {
+      display: grid;
+      gap: 14px;
+    }
+
+    .chart-grid {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    }
+
+    .chart-card {
+      padding: 14px 16px;
+    }
+
+    .chart-card h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .chart {
+      width: 100%;
+      height: 320px;
+    }
+
+    .chart.wide {
+      height: 340px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 4px 0 8px;
+    }
+
+    .tabs {
+      display: inline-flex;
+      gap: 8px;
+      background: var(--glass);
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+
+    .tab-btn {
+      border: none;
+      padding: 8px 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      background: transparent;
+      font-weight: 700;
+      color: var(--muted);
+      transition: all 0.12s ease;
+    }
+
+    .tab-btn.active {
+      background: rgba(93, 216, 255, 0.16);
+      color: var(--text);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    .table-card {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .table-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    thead {
+      background: rgba(255, 255, 255, 0.05);
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      backdrop-filter: blur(6px);
+    }
+
+    th,
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    th {
+      text-align: left;
+      color: var(--muted);
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+
+    tbody tr:nth-child(even) {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    tbody tr:hover {
+      background: rgba(93, 216, 255, 0.08);
+    }
+
+    .panel {
+      display: none;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    /* 手机端优化 */
+    @media (max-width: 768px) {
+      header {
+        position: static;
+      }
+
+      .page {
+        padding: 14px 14px 24px;
+      }
+
+      .chart {
+        height: 260px;
+      }
+
+      .table-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .section-title {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .btn {
+        width: 100%;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>深蹲训练数据分析仪表盘</h1>
+    <p>前端聚合“单次深蹲”原始记录，按组 / 按天 / 频率多维度洞察训练质量。</p>
+  </header>
+
+  <div class="page">
+    <div class="toolbar">
+      <button class="btn" id="refreshBtn">刷新数据</button>
+      <span class="muted" id="status">正在加载...</span>
+      <span class="tag" id="refreshMeta">--</span>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <h3>总深蹲次数</h3>
+        <div class="value"><span id="totalReps">--</span><small>累积 reps</small></div>
+        <small>来自所有组的汇总</small>
+      </div>
+      <div class="card">
+        <h3>总组数 / 总天数</h3>
+        <div class="value"><span id="totalSessions">--</span><small id="totalDays">-- 天</small></div>
+        <small>按 elapsed_seconds 重置或长间隔划分</small>
+      </div>
+      <div class="card">
+        <h3>平均每组次数</h3>
+        <div class="value"><span id="avgPerSession">--</span><small>reps/组</small></div>
+        <small>总次数 ÷ 组数</small>
+      </div>
+      <div class="card">
+        <h3>最高频率</h3>
+        <div class="value"><span id="bestFrequency">--</span><small>次/分钟</small></div>
+        <small>单组频率峰值</small>
+      </div>
+      <div class="card">
+        <h3>最近训练时间</h3>
+        <div class="value"><span id="lastSessionTime">--</span></div>
+        <small>最新一组结束时间</small>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="chart-grid">
+        <div class="card chart-card">
+          <div class="section-title">
+            <h2>每组深蹲数量对比</h2>
+            <span class="tag">组级统计</span>
+          </div>
+          <div id="chartSessions" class="chart"></div>
+        </div>
+        <div class="card chart-card">
+          <div class="section-title">
+            <h2>每天总次数趋势</h2>
+            <span class="tag">日期维度</span>
+          </div>
+          <div id="chartDaily" class="chart"></div>
+        </div>
+      </div>
+      <div class="card chart-card">
+        <div class="section-title">
+          <h2>每组频率（次/分钟）</h2>
+          <div class="tabs">
+            <button class="tab-btn active" data-chart-mode="line">折线</button>
+            <button class="tab-btn" data-chart-mode="bar">柱状</button>
+          </div>
+        </div>
+        <div id="chartFrequency" class="chart wide"></div>
+      </div>
+    </div>
+
+    <div class="layout">
+      <div class="card table-card">
+        <div class="table-header">
+          <div>
+            <strong>数据表格</strong>
+            <div class="muted" id="tableInfo">记录 -- · 组 -- · 天 --</div>
+          </div>
+          <div class="tabs">
+            <button class="tab-btn active" data-panel="raw">原始记录</button>
+            <button class="tab-btn" data-panel="session">每组摘要</button>
+          </div>
+        </div>
+        <div class="panel active" id="panel-raw" style="max-height: 420px; overflow: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>时间戳</th>
+                <th>组编号</th>
+                <th>组内序号</th>
+                <th>全局计数</th>
+                <th>最小膝角</th>
+                <th>膝角</th>
+                <th>髋角</th>
+                <th>最佳深度</th>
+                <th>下蹲阈值</th>
+                <th>起立阈值</th>
+                <th>已运动秒</th>
+              </tr>
+            </thead>
+            <tbody id="tableRaw"></tbody>
+          </table>
+        </div>
+        <div class="panel" id="panel-session" style="max-height: 420px; overflow: auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>组编号</th>
+                <th>日期</th>
+                <th>开始时间</th>
+                <th>结束时间</th>
+                <th>总次数</th>
+                <th>总时长(s)</th>
+                <th>频率(次/分钟)</th>
+              </tr>
+            </thead>
+            <tbody id="tableSession"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 接口地址：保持不变，依然通过 fetch 获取数据
+    const API_URL = "http://localhost:5000/api/squats";
+
+    const statusEl = document.getElementById("status");
+    const refreshMeta = document.getElementById("refreshMeta");
+    const tableInfo = document.getElementById("tableInfo");
+
+    const totalRepsEl = document.getElementById("totalReps");
+    const totalSessionsEl = document.getElementById("totalSessions");
+    const totalDaysEl = document.getElementById("totalDays");
+    const avgPerSessionEl = document.getElementById("avgPerSession");
+    const bestFrequencyEl = document.getElementById("bestFrequency");
+    const lastSessionTimeEl = document.getElementById("lastSessionTime");
+
+    const tableRawBody = document.getElementById("tableRaw");
+    const tableSessionBody = document.getElementById("tableSession");
+
+    const chartSessions = echarts.init(document.getElementById("chartSessions"));
+    const chartDaily = echarts.init(document.getElementById("chartDaily"));
+    const chartFrequency = echarts.init(document.getElementById("chartFrequency"));
+
+    // 统一字段兼容：将后端可能的不同字段名映射为统一格式
+    function normalizeRecord(r) {
+      return {
+        timestamp: r.timestamp || r.time || "",
+        count: Number(r.count ?? r.total ?? 0),
+        rep_min_knee_angle: Number(r.rep_min_knee_angle ?? r.min_knee_angle ?? r.rep_min_angle ?? r.rep_min ?? r.min_angle ?? NaN),
+        knee_angle: Number(r.knee_angle ?? NaN),
+        hip_angle: Number(r.hip_angle ?? NaN),
+        best_depth_angle: Number(r.best_depth_angle ?? r.best_depth ?? NaN),
+        threshold_down: Number(r.threshold_down ?? r.down_threshold ?? r.squat_threshold_down ?? NaN),
+        threshold_up: Number(r.threshold_up ?? r.up_threshold ?? r.squat_threshold_up ?? NaN),
+        elapsed_seconds: Number(r.elapsed_seconds ?? NaN)
+      };
+    }
+
+    function formatDate(ts) { return ts ? ts.split("T")[0] : ""; }
+    function formatTime(ts) {
+      if (!ts) return "--";
+      const d = new Date(ts);
+      return `${d.toLocaleDateString()} ${d.toLocaleTimeString()}`;
+    }
+
+    /*
+      分组逻辑（session）：
+      1）按 timestamp 升序排序；
+      2）当 elapsed_seconds 归零/变小，或相邻记录时间间隔 > 5 分钟时，判定为新的一组；
+      3）为每条记录打上 session_id 与组内序号 rep_in_session。
+    */
+    function buildSessions(records) {
+      const sorted = [...records].filter(r => r.timestamp).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      const sessions = [];
+      let current = [];
+
+      sorted.forEach(rec => {
+        if (!current.length) {
+          current.push(rec);
+          return;
+        }
+        const prev = current[current.length - 1];
+        const elapsedReset = Number.isFinite(rec.elapsed_seconds) && Number.isFinite(prev.elapsed_seconds)
+          ? rec.elapsed_seconds < prev.elapsed_seconds
+          : false;
+        const gapMs = new Date(rec.timestamp) - new Date(prev.timestamp);
+        if (elapsedReset || gapMs > 5 * 60 * 1000) {
+          sessions.push(current);
+          current = [rec];
+        } else {
+          current.push(rec);
+        }
+      });
+      if (current.length) sessions.push(current);
+
+      return sessions.map((items, idx) => {
+        const start = items[0];
+        const end = items[items.length - 1];
+        const totalReps = items.length; // 每条记录视为一次深蹲
+        // 计算组时长：取 elapsed_seconds 差值与时间差(秒)的最大值，避免传感器重置导致时长偏小
+        const elapsedStart = Number.isFinite(start.elapsed_seconds) ? start.elapsed_seconds : 0;
+        const elapsedEnd = Number.isFinite(end.elapsed_seconds) ? end.elapsed_seconds : elapsedStart;
+        const durationByElapsed = Math.max(0, elapsedEnd - elapsedStart);
+        const durationByTimestamp = (new Date(end.timestamp) - new Date(start.timestamp)) / 1000;
+        const durationSec = Math.max(durationByElapsed, durationByTimestamp, 1); // 避免除零
+        const frequency = totalReps / (durationSec / 60); // 每 60 秒频率
+
+        // 标记原始记录的组信息
+        items.forEach((r, i) => {
+          r.session_id = idx + 1;
+          r.rep_in_session = i + 1;
+        });
+
+        return {
+          session_id: idx + 1,
+          start_time: start.timestamp,
+          end_time: end.timestamp,
+          totalReps,
+          durationSec: Number(durationSec.toFixed(1)),
+          frequency: Number(frequency.toFixed(2))
+        };
+      });
+    }
+
+    /*
+      按天聚合：
+      取每组开始时间的日期 YYYY-MM-DD，累加当天总次数与组数，形成 daily 数组。
+    */
+    function buildDailyFromSessions(sessions) {
+      const map = new Map();
+      sessions.forEach(s => {
+        const d = formatDate(s.start_time);
+        if (!d) return;
+        const prev = map.get(d) || { reps: 0, sessions: 0 };
+        map.set(d, { reps: prev.reps + s.totalReps, sessions: prev.sessions + 1 });
+      });
+      const dates = Array.from(map.keys()).sort();
+      return dates.map(d => ({ date: d, reps: map.get(d).reps, sessions: map.get(d).sessions }));
+    }
+
+    function updateSummary(records, sessions, daily) {
+      const totalReps = records.length;
+      const totalSessions = sessions.length;
+      const totalDays = new Set(daily.map(d => d.date)).size;
+      const avgPerSession = totalSessions ? (totalReps / totalSessions) : 0;
+      const bestFrequency = sessions.length ? Math.max(...sessions.map(s => s.frequency)) : 0;
+      const lastSessionEnd = sessions.length ? sessions[sessions.length - 1].end_time : "";
+
+      totalRepsEl.textContent = totalReps;
+      totalSessionsEl.textContent = totalSessions;
+      totalDaysEl.textContent = totalDays ? `${totalDays} 天` : "--";
+      avgPerSessionEl.textContent = totalSessions ? avgPerSession.toFixed(1) : "--";
+      bestFrequencyEl.textContent = bestFrequency ? bestFrequency.toFixed(2) : "--";
+      lastSessionTimeEl.textContent = lastSessionEnd ? formatTime(lastSessionEnd) : "--";
+    }
+
+    // 图表 1：每组总次数（组维度）
+    function renderSessionChart(sessions) {
+      const labels = sessions.map(s => `${formatDate(s.start_time)} 第${s.session_id}组`);
+      const data = sessions.map(s => s.totalReps);
+      chartSessions.setOption({
+        backgroundColor: "transparent",
+        grid: { left: 50, right: 18, top: 40, bottom: 60 },
+        tooltip: { trigger: "axis" },
+        xAxis: { type: "category", data: labels, axisLabel: { rotate: 20, color: "#cbd5e1" }, axisLine: { lineStyle: { color: "#334155" } } },
+        yAxis: { type: "value", name: "总次数", axisLabel: { color: "#cbd5e1" }, splitLine: { lineStyle: { color: "#1f2937" } } },
+        series: [{
+          type: "bar",
+          name: "次数",
+          data,
+          itemStyle: {
+            color: {
+              type: "linear", x: 0, y: 0, x2: 0, y2: 1,
+              colorStops: [{ offset: 0, color: "#5dd8ff" }, { offset: 1, color: "#7c4dff" }]
+            },
+            borderRadius: [10, 10, 0, 0]
+          }
+        }]
+      });
+    }
+
+    // 图表 2：每天总次数（日期维度）
+    function renderDailyChart(daily) {
+      const dates = daily.map(d => d.date);
+      const reps = daily.map(d => d.reps);
+      chartDaily.setOption({
+        backgroundColor: "transparent",
+        grid: { left: 50, right: 18, top: 40, bottom: 50 },
+        tooltip: { trigger: "axis" },
+        xAxis: { type: "category", data: dates, axisLabel: { rotate: 20, color: "#cbd5e1" }, axisLine: { lineStyle: { color: "#334155" } } },
+        yAxis: { type: "value", name: "总次数", axisLabel: { color: "#cbd5e1" }, splitLine: { lineStyle: { color: "#1f2937" } } },
+        series: [{
+          type: "line",
+          smooth: true,
+          symbol: "circle",
+          name: "次数",
+          itemStyle: { color: "#5dd8ff" },
+          lineStyle: { width: 3 },
+          areaStyle: { color: "rgba(93, 216, 255, 0.18)" },
+          data: reps
+        }]
+      });
+    }
+
+    // 图表 3：每组频率（次/分钟），支持折线/柱状切换
+    function renderFrequencyChart(sessions, mode = "line") {
+      const labels = sessions.map(s => `第${s.session_id}组`);
+      const data = sessions.map(s => s.frequency);
+      const base = {
+        backgroundColor: "transparent",
+        grid: { left: 50, right: 20, top: 40, bottom: 40 },
+        tooltip: { trigger: "axis" },
+        xAxis: { type: "category", data: labels, axisLabel: { color: "#cbd5e1" }, axisLine: { lineStyle: { color: "#334155" } } },
+        yAxis: { type: "value", name: "次/分钟", axisLabel: { color: "#cbd5e1" }, splitLine: { lineStyle: { color: "#1f2937" } } }
+      };
+
+      if (mode === "bar") {
+        chartFrequency.setOption({
+          ...base,
+          series: [{
+            type: "bar",
+            name: "频率",
+            data,
+            itemStyle: { color: "#ffb347", borderRadius: [10, 10, 0, 0] }
+          }]
+        });
+      } else {
+        chartFrequency.setOption({
+          ...base,
+          series: [{
+            type: "line",
+            smooth: true,
+            symbol: "circle",
+            name: "频率",
+            itemStyle: { color: "#ffb347" },
+            lineStyle: { width: 3 },
+            areaStyle: { color: "rgba(255, 179, 71, 0.18)" },
+            data
+          }]
+        });
+      }
+    }
+
+    // 构建原始记录表
+    function buildRawTable(records) {
+      tableRawBody.innerHTML = "";
+      const frag = document.createDocumentFragment();
+      records.forEach(r => {
+        const tr = document.createElement("tr");
+        const cells = [
+          formatTime(r.timestamp),
+          r.session_id || "--",
+          r.rep_in_session || "--",
+          r.count || "--",
+          Number.isFinite(r.rep_min_knee_angle) ? r.rep_min_knee_angle.toFixed(1) : "--",
+          Number.isFinite(r.knee_angle) ? r.knee_angle.toFixed(1) : "--",
+          Number.isFinite(r.hip_angle) ? r.hip_angle.toFixed(1) : "--",
+          Number.isFinite(r.best_depth_angle) ? r.best_depth_angle.toFixed(1) : "--",
+          Number.isFinite(r.threshold_down) ? r.threshold_down : "--",
+          Number.isFinite(r.threshold_up) ? r.threshold_up : "--",
+          Number.isFinite(r.elapsed_seconds) ? r.elapsed_seconds : "--"
+        ];
+        cells.forEach(val => {
+          const td = document.createElement("td");
+          td.textContent = val;
+          tr.appendChild(td);
+        });
+        frag.appendChild(tr);
+      });
+      tableRawBody.appendChild(frag);
+    }
+
+    // 构建每组摘要表
+    function buildSessionTable(sessions) {
+      tableSessionBody.innerHTML = "";
+      const frag = document.createDocumentFragment();
+      sessions.forEach(s => {
+        const tr = document.createElement("tr");
+        const cells = [
+          s.session_id,
+          formatDate(s.start_time),
+          formatTime(s.start_time),
+          formatTime(s.end_time),
+          s.totalReps,
+          s.durationSec,
+          s.frequency.toFixed(2)
+        ];
+        cells.forEach(val => {
+          const td = document.createElement("td");
+          td.textContent = val;
+          tr.appendChild(td);
+        });
+        frag.appendChild(tr);
+      });
+      tableSessionBody.appendChild(frag);
+    }
+
+    function updateTableInfo(records, sessions, daily) {
+      tableInfo.textContent = `记录 ${records.length} · 组 ${sessions.length} · 天 ${daily.length}`;
+    }
+
+    // 表格 Tab 切换
+    const tabButtons = document.querySelectorAll("[data-panel]");
+    tabButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        tabButtons.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+        document.getElementById(`panel-${btn.dataset.panel}`).classList.add("active");
+      });
+    });
+
+    // 频率图表模式切换
+    let currentFrequencyMode = "line";
+    document.querySelectorAll("[data-chart-mode]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("[data-chart-mode]").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentFrequencyMode = btn.dataset.chartMode;
+        renderFrequencyChart(currentSessions, currentFrequencyMode);
+      });
+    });
+
+    let currentSessions = [];
+
+    async function fetchData() {
+      statusEl.textContent = "正在请求数据...";
+      try {
+        const res = await fetch(API_URL);
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        const data = await res.json();
+        const records = (Array.isArray(data) ? data : []).map(normalizeRecord);
+        const sessions = buildSessions(records);
+        const daily = buildDailyFromSessions(sessions);
+        currentSessions = sessions;
+
+        updateSummary(records, sessions, daily);
+        renderSessionChart(sessions);
+        renderDailyChart(daily);
+        renderFrequencyChart(sessions, currentFrequencyMode);
+        buildRawTable(records);
+        buildSessionTable(sessions);
+        updateTableInfo(records, sessions, daily);
+
+        const now = new Date().toLocaleString();
+        statusEl.textContent = `最后刷新：${now}`;
+        refreshMeta.textContent = `${records.length} 条原始记录 · ${sessions.length} 组 · ${daily.length} 天`;
+      } catch (err) {
+        statusEl.textContent = "请求失败：" + err.message;
+        console.error(err);
+      }
+    }
+
+    document.getElementById("refreshBtn").addEventListener("click", fetchData);
+    window.addEventListener("resize", () => {
+      chartSessions && chartSessions.resize();
+      chartDaily && chartDaily.resize();
+      chartFrequency && chartFrequency.resize();
+    });
+
+    // 初始化
+    fetchData();
+  </script>
+</body>
+
+</html>
